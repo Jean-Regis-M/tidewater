@@ -5,6 +5,8 @@ Built on [Reactive Omni](https://dev.reactive.network) for the Reactive Omni Bui
 
 ![Tidewater dashboard](docs/screenshots/01-dashboard-desktop.png)
 
+**Demo video (2:34):** [https://youtu.be/d0XdrLkGFYM](https://youtu.be/d0XdrLkGFYM). Recorded from the live app during real testnet transactions. Narration uses a synthetic voice.
+
 ## The problem
 
 Vaults that put deposits to work (lending, staking, market making) are often illiquid when users want out. Today the usual answers are all poor:
