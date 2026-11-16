@@ -1,0 +1,98 @@
+[
+ {
+  "origin": "0x4b6fc5ac01c879d90ba6df732b3bcad6fe93a4db53e0feb48a2e9bf700ecacf9",
+  "react": "0x3dfa8e7af9c7c09fcae999ce49c8787b4477a1ec4ce1ecbef90e09625b7e059e",
+  "settle": "0x613f4bb549802cc96bd1612b00211d9fb807589b6094cadb84d05cd45bd23a16",
+  "originBlock": 59709314,
+  "reactBlock": 8518929,
+  "settleBlock": 59709324,
+  "originToReactMs": -600,
+  "reactToSettleMs": 2600,
+  "originToSettleMs": 2000,
+  "msPrecision": [
+   true,
+   false,
+   true
+  ]
+ },
+ {
+  "origin": "0x4413cd8ecea279f24822db4fb823ed2cd94e6a534fabeb053bfd2c306605107a",
+  "react": "0x084626bb97a22db3c883f38cfad5621a8e531031ba472759060f181c83f18cea",
+  "settle": "0x955545b21730715a72e30ab2e7857cb1f3b7fbd814c174405b2c17d2693e5dc4",
+  "originBlock": 59709529,
+  "reactBlock": 8518969,
+  "settleBlock": 59709536,
+  "originToReactMs": -600,
+  "reactToSettleMs": 2000,
+  "originToSettleMs": 1400,
+  "msPrecision": [
+   true,
+   false,
+   true
+  ]
+ },
+ {
+  "origin": "0xcda87213b0b8f71d469ece7b2619f68eaf6ee2e80ae9576adf9dcdb150f42238",
+  "react": "0x21ce64a6dfabbd18c62a2d2c8cbad33eec7aeecbf96a1dda59d5ccf17e1f3bda",
+  "settle": "0xa80f72b050846d983de9aa94744290b7509f387f385643582e886b4189ebcfce",
+  "originBlock": 59712131,
+  "reactBlock": 8519460,
+  "settleBlock": 59712141,
+  "originToReactMs": 0,
+  "reactToSettleMs": 2000,
+  "originToSettleMs": 2000,
+  "msPrecision": [
+   true,
+   false,
+   true
+  ]
+ },
+ {
+  "origin": "0xa8b9e0a3e548ea25c4efbd12232bf3115356bf959995efc34b772e71ab44dcc7",
+  "react": "0xd8b4ac9efc260463c7daddaa6d24efc9acdc2e7997bdae3dda83f10c66c5c8c3",
+  "settle": "0xbdac86e4ca155b5430d635e65dc6e832e7bca192bc4b39b88369a951a5e63415",
+  "originBlock": 59712223,
+  "reactBlock": 8519477,
+  "settleBlock": 59712231,
+  "originToReactMs": -400,
+  "reactToSettleMs": 2000,
+  "originToSettleMs": 1600,
+  "msPrecision": [
+   true,
+   false,
+   true
+  ]
+ },
+ {
+  "origin": "0x67b647bfed4d5e17de2e2d41854c66ac2cd091cfaf1275bd9b808be61420d516",
+  "react": "0x223eb1eb5c28250b5882cd41d2c014ed74d46523f19e740f59e0cc2f8ed26eae",
+  "settle": "0xac6976b34e65e998af072a08b983eb92c95da0d137b210b809905f1165a68481",
+  "originBlock": 59712310,
+  "reactBlock": 8519493,
+  "settleBlock": 59712315,
+  "originToReactMs": -1800,
+  "reactToSettleMs": 2800,
+  "originToSettleMs": 1000,
+  "msPrecision": [
+   true,
+   false,
+   true
+  ]
+ },
+ {
+  "origin": "0xfa68a013c06e03fb7c457d903aab9d57ddd63e5be87930d09f7ec9ee516b5ca2",
+  "react": "0x4e3aeefbf40d66b1ae4b40ba3b942fdaab0732ce91fd152d8d5ca6e6b09b8fc3",
+  "settle": "0xbf68cc2a89f8e3e8f1dc435303ec23e4ba4886e64198b9a5a93cc7469fb58522",
+  "originBlock": 59712397,
+  "reactBlock": 8519510,
+  "settleBlock": 59712405,
+  "originToReactMs": -1200,
+  "reactToSettleMs": 2800,
+  "originToSettleMs": 1600,
+  "msPrecision": [
+   true,
+   false,
+   true
+  ]
+ }
+]

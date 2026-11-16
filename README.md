@@ -79,18 +79,18 @@ The reactive contract and the token share an address because they were the deplo
 
 ## Verified end-to-end transactions
 
-Each row is one full loop: a user transaction on Base (origin event) → Reactive reaction on Lasna → settlement callback on Base. All hashes are on Base Sepolia ([BaseScan](https://sepolia.basescan.org)).
+Each row is one full loop: a user transaction on Base (origin event) → the reactive contract's reaction on Reactive Lasna → the settlement callback on Base. The Base hashes can be opened on [Blockscout](https://base-sepolia.blockscout.com); the Lasna reaction hashes are the transactions in which `TidewaterReactive` emitted `SettleRequested` (see the contract on [ReactScan](https://lasna.reactscan.net/address/0xde9cAF1626f5680c2d7961ca4fd1638D3c4a1885), which lists 14 callbacks and its 4 subscriptions).
 
-| # | Origin: `repay` (LiquidityAdded) | Callback: `settle` (Settled) |
-|---|---|---|
-| 1 | `0x4b6fc5ac01c879d90ba6df732b3bcad6fe93a4db53e0feb48a2e9bf700ecacf9` | `0x613f4bb549802cc96bd1612b00211d9fb807589b6094cadb84d05cd45bd23a16` |
-| 2 | `0x4413cd8ecea279f24822db4fb823ed2cd94e6a534fabeb053bfd2c306605107a` | `0x955545b21730715a72e30ab2e7857cb1f3b7fbd814c174405b2c17d2693e5dc4` |
-| 3 | `0xcda87213b0b8f71d469ece7b2619f68eaf6ee2e80ae9576adf9dcdb150f42238` | `0xa80f72b050846d983de9aa94744290b7509f387f385643582e886b4189ebcfce` |
-| 4 | `0xa8b9e0a3e548ea25c4efbd12232bf3115356bf959995efc34b772e71ab44dcc7` | `0xbdac86e4ca155b5430d635e65dc6e832e7bca192bc4b39b88369a951a5e63415` |
-| 5 | `0x67b647bfed4d5e17de2e2d41854c66ac2cd091cfaf1275bd9b808be61420d516` | `0xac6976b34e65e998af072a08b983eb92c95da0d137b210b809905f1165a68481` |
-| 6 | `0xfa68a013c06e03fb7c457d903aab9d57ddd63e5be87930d09f7ec9ee516b5ca2` | `0xbf68cc2a89f8e3e8f1dc435303ec23e4ba4886e64198b9a5a93cc7469fb58522` |
+| # | Origin: `repay` on Base (LiquidityAdded) | Reaction on Lasna (SettleRequested) | Callback: `settle` on Base (Settled) | Base blocks | On-chain Δ |
+|---|---|---|---|---|---|
+| 1 | `0x4b6fc5ac01c879d90ba6df732b3bcad6fe93a4db53e0feb48a2e9bf700ecacf9` | `0x3dfa8e7af9c7c09fcae999ce49c8787b4477a1ec4ce1ecbef90e09625b7e059e` | `0x613f4bb549802cc96bd1612b00211d9fb807589b6094cadb84d05cd45bd23a16` | 59709314 → 59709324 (10 blocks) | 2.0 s |
+| 2 | `0x4413cd8ecea279f24822db4fb823ed2cd94e6a534fabeb053bfd2c306605107a` | `0x084626bb97a22db3c883f38cfad5621a8e531031ba472759060f181c83f18cea` | `0x955545b21730715a72e30ab2e7857cb1f3b7fbd814c174405b2c17d2693e5dc4` | 59709529 → 59709536 (7 blocks) | 1.4 s |
+| 3 | `0xcda87213b0b8f71d469ece7b2619f68eaf6ee2e80ae9576adf9dcdb150f42238` | `0x21ce64a6dfabbd18c62a2d2c8cbad33eec7aeecbf96a1dda59d5ccf17e1f3bda` | `0xa80f72b050846d983de9aa94744290b7509f387f385643582e886b4189ebcfce` | 59712131 → 59712141 (10 blocks) | 2.0 s |
+| 4 | `0xa8b9e0a3e548ea25c4efbd12232bf3115356bf959995efc34b772e71ab44dcc7` | `0xd8b4ac9efc260463c7daddaa6d24efc9acdc2e7997bdae3dda83f10c66c5c8c3` | `0xbdac86e4ca155b5430d635e65dc6e832e7bca192bc4b39b88369a951a5e63415` | 59712223 → 59712231 (8 blocks) | 1.6 s |
+| 5 | `0x67b647bfed4d5e17de2e2d41854c66ac2cd091cfaf1275bd9b808be61420d516` | `0x223eb1eb5c28250b5882cd41d2c014ed74d46523f19e740f59e0cc2f8ed26eae` | `0xac6976b34e65e998af072a08b983eb92c95da0d137b210b809905f1165a68481` | 59712310 → 59712315 (5 blocks) | 1.0 s |
+| 6 | `0xfa68a013c06e03fb7c457d903aab9d57ddd63e5be87930d09f7ec9ee516b5ca2` | `0x4e3aeefbf40d66b1ae4b40ba3b942fdaab0732ce91fd152d8d5ca6e6b09b8fc3` | `0xbf68cc2a89f8e3e8f1dc435303ec23e4ba4886e64198b9a5a93cc7469fb58522` | 59712397 → 59712405 (8 blocks) | 1.6 s |
 
-Raw records: [`deployments/measurements.jsonl`](deployments/measurements.jsonl).
+Raw records: [`deployments/measurements.jsonl`](deployments/measurements.jsonl) and [`deployments/lasna-links.json`](deployments/lasna-links.json).
 
 ## Measured latency
 
@@ -101,6 +101,10 @@ Time from the `repay` transaction being confirmed to the vault's `pending` dropp
 | 6 | 1.16 s | 2.38 s | 2.46 s |
 
 Caveats, stated plainly: these are client-side measurements from one laptop over public RPCs, with about 0.5 s of polling and RPC resolution, so treat them as "about 1 to 2.5 seconds", not as precise protocol latency. The number is the whole loop (Base event → Reactive → callback → Base settlement), not Reactive's block time alone. Base block timestamps are whole seconds, so on-chain timestamp deltas are coarse.
+
+### On-chain timing (block timestamps)
+
+Base blocks carry millisecond timestamps, so the origin block to settle block gap is measured on-chain with no client polling: min 1.0 s, median 1.6 s, max 2.0 s over the same 6 loops (5 to 10 Base blocks). Lasna block timestamps are whole seconds only, so a per-hop split (Base → Lasna → Base) is not reported; it would be an artefact of rounding.
 
 Extra live scenarios run on testnet:
 
@@ -153,6 +157,7 @@ docs/       screenshots
 - Prototype on testnets. Not audited.
 - The asset is assumed to be a well-behaved ERC-20. A token that can block transfers to a ticket owner (a blocklist) would stall the head of the queue.
 - If extra liquidity arrives inside the callback cooldown and no later event follows, it waits for the next liquidity event.
+- The user-facing flow starts and ends on Base Sepolia; the cross-chain hop is Base → Reactive Lasna → Base. A second origin chain (Unichain Sepolia) is on the roadmap, and there is no polling-keeper baseline measurement yet.
 - Vault shares are 1:1 claims with no yield; the "strategy" is a demo address controlled by the owner.
 - Contract source is not yet verified on explorers.
 
