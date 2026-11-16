@@ -118,8 +118,7 @@ The dashboard reads live chain state: vault liquidity, queued amount, the ticket
 Requirements: [Foundry](https://getfoundry.sh), Node 20+.
 
 ```bash
-git clone <this repo> && cd tidewater
-forge install
+git clone --recurse-submodules https://github.com/Jean-Regis-M/tidewater.git && cd tidewater
 forge test                      # 22 tests incl. a fuzz test
 cp .env.example .env            # add a THROWAWAY testnet PRIVATE_KEY
 bash scripts/deploy.sh          # needs Base Sepolia ETH and lREACT on Lasna
