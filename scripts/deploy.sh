@@ -17,14 +17,17 @@ echo "1/4 Reactive contract on Lasna"
 REACTIVE=$(forge create --broadcast --rpc-url "$LASNA_RPC" --private-key "$PRIVATE_KEY" --value "$REACTIVE_FUND" \
   src/TidewaterReactive.sol:TidewaterReactive --constructor-args $BASE_CHAIN | tee /dev/stderr | extract)
 
-echo "2/4 Token on Base Sepolia"
-TOKEN=$(forge create --broadcast --rpc-url "$BASE_SEPOLIA_RPC" --private-key "$PRIVATE_KEY" \
-  src/TideToken.sol:TideToken | tee /dev/stderr | extract)
+echo "2/4 Token on Base Sepolia (set TOKEN=0x... to reuse an existing one)"
+TOKEN=${TOKEN:-$(forge create --broadcast --rpc-url "$BASE_SEPOLIA_RPC" --private-key "$PRIVATE_KEY" \
+  src/TideToken.sol:TideToken | tee /dev/stderr | extract)}
 
 echo "3/4 Vault on Base Sepolia"
 VAULT=$(forge create --broadcast --rpc-url "$BASE_SEPOLIA_RPC" --private-key "$PRIVATE_KEY" \
-  src/TidewaterVault.sol:TidewaterVault --constructor-args "$TOKEN" "$BASE_PROXY" "$REACTIVE" "$DEPLOYER" | tee /dev/stderr | extract)
+  src/TidewaterVault.sol:TidewaterVault --constructor-args "$TOKEN" "$BASE_PROXY" "$REACTIVE" "$DEPLOYER" "${MIN_TICKET:-1000000}" | tee /dev/stderr | extract)
 BLOCK=$(cast block-number --rpc-url "$BASE_SEPOLIA_RPC")
+
+echo "Credit reactive reserves on Lasna (the deploy value is balance, not reserves)"
+cast send --rpc-url "$LASNA_RPC" --private-key "$PRIVATE_KEY" 0x8888888888888888888888888888888888888888 "depositTo(address)" "$REACTIVE" --value "${REACTIVE_RESERVE:-2ether}"
 
 echo "4/4 Bind subscriptions on Lasna"
 cast send --rpc-url "$LASNA_RPC" --private-key "$PRIVATE_KEY" "$REACTIVE" "bind(address)" "$VAULT"
@@ -34,7 +37,7 @@ cast send --rpc-url "$BASE_SEPOLIA_RPC" --private-key "$PRIVATE_KEY" "$BASE_PROX
 
 mkdir -p deployments
 cat > deployments/testnet.json <<EOF
-{ "token": "$TOKEN", "vault": "$VAULT", "reactive": "$REACTIVE", "strategy": "$DEPLOYER", "deployBlock": $((BLOCK - 5)) }
+{ "version": "v2", "token": "$TOKEN", "vault": "$VAULT", "reactive": "$REACTIVE", "strategy": "$DEPLOYER", "deployBlock": $((BLOCK - 5)) }
 EOF
 cp deployments/testnet.json frontend/src/deployments.json
 echo "Done. See deployments/testnet.json"

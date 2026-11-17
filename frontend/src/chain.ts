@@ -38,11 +38,12 @@ export const tokenAbi = parseAbi([
 export const vaultAbi = parseAbi([
   'function liquidity() view returns (uint256)',
   'function pending() view returns (uint256)',
-  'function head() view returns (uint256)',
+  'function queueLength() view returns (uint256)',
+  'function minTicket() view returns (uint256)',
   'function ticketCount() view returns (uint256)',
   'function claims(address) view returns (uint256)',
   'function owner() view returns (address)',
-  'function tickets(uint256) view returns (address owner, uint128 amount, uint128 filled, uint64 queuedAt, bool cancelled)',
+  'function tickets(uint256) view returns (address owner, uint128 amount, uint128 filled, uint64 queuedAt, bool active, uint256 prev, uint256 next)',
   'function deposit(uint256)',
   'function requestWithdraw(uint256) returns (uint256)',
   'function cancelTicket(uint256)',
@@ -53,7 +54,7 @@ export const vaultAbi = parseAbi([
   'event TicketFilled(uint256 indexed id, address indexed user, uint256 paid, bool done)',
   'event LiquidityAdded(address indexed from, uint256 amount, uint256 liquidityAfter, uint256 pendingNow)',
   'event Settled(uint256 processed, uint256 paid, uint256 pendingAfter, uint256 liquidityAfter, uint256 timestamp)',
-  'event Withdrawn(address indexed user, uint256 amount)',
+  'event Withdrawn(address indexed user, uint256 amount, uint256 liquidityAfter)',
 ])
 
 export const reactiveAbi = parseAbi([

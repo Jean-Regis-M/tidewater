@@ -33,7 +33,7 @@ export default function App() {
       const [liquidity, pending, head, count, claims, balance, allowance, owner] = await Promise.all([
         baseClient.readContract({ address: v, abi: vaultAbi, functionName: 'liquidity' }),
         baseClient.readContract({ address: v, abi: vaultAbi, functionName: 'pending' }),
-        baseClient.readContract({ address: v, abi: vaultAbi, functionName: 'head' }),
+        baseClient.readContract({ address: v, abi: vaultAbi, functionName: 'queueLength' }),
         baseClient.readContract({ address: v, abi: vaultAbi, functionName: 'ticketCount' }),
         baseClient.readContract({ address: v, abi: vaultAbi, functionName: 'claims', args: [who] }),
         baseClient.readContract({ address: addr.token as `0x${string}`, abi: tokenAbi, functionName: 'balanceOf', args: [who] }),
@@ -44,7 +44,7 @@ export default function App() {
       const tickets: Ticket[] = []
       for (let i = Number(count) - 1; i >= start; i--) {
         const t = await baseClient.readContract({ address: v, abi: vaultAbi, functionName: 'tickets', args: [BigInt(i)] })
-        tickets.push({ id: i, owner: t[0], amount: t[1], filled: t[2], queuedAt: Number(t[3]), cancelled: t[4] })
+        tickets.push({ id: i, owner: t[0], amount: t[1], filled: t[2], queuedAt: Number(t[3]), cancelled: !t[4] && t[2] < t[1] })
       }
       let rx: Snap['rx'] = null
       try {
@@ -140,7 +140,7 @@ export default function App() {
       <section className="grid stats">
         <Stat label="Vault liquidity" value={snap ? fmt(snap.liquidity) : '–'} unit="tUSD" tone={snap && snap.liquidity === 0n ? 'warn' : 'ok'} />
         <Stat label="Queued withdrawals" value={snap ? fmt(snap.pending) : '–'} unit="tUSD" tone={snap && snap.pending > 0n ? 'warn' : 'ok'} />
-        <Stat label="Tickets waiting" value={snap ? String(Number(snap.count - snap.head)) : '–'} unit="" />
+        <Stat label="Tickets waiting" value={snap ? String(Number(snap.head)) : '–'} unit="" />
         <Stat label="Reactive callbacks" value={snap?.rx ? String(snap.rx.callbacks) : '–'} unit="requested" />
       </section>
 

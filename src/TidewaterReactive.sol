@@ -18,6 +18,8 @@ contract TidewaterReactive is AbstractReactive {
     uint256 public constant T_CANCELLED = uint256(keccak256("TicketCancelled(uint256,address,uint256,uint256)"));
     uint256 public constant T_LIQUIDITY = uint256(keccak256("LiquidityAdded(address,uint256,uint256,uint256)"));
     uint256 public constant T_SETTLED = uint256(keccak256("Settled(uint256,uint256,uint256,uint256,uint256)"));
+    uint256 public constant T_LENT = uint256(keccak256("Lent(address,uint256,uint256)"));
+    uint256 public constant T_WITHDRAWN = uint256(keccak256("Withdrawn(address,uint256,uint256)"));
 
     // shadow state derived purely from vault events
     uint256 public pending;
@@ -37,12 +39,14 @@ contract TidewaterReactive is AbstractReactive {
     uint256 public eventsIgnored;
 
     event Bound(address vault);
+    event PolicyUpdated(uint256 minTrigger, uint256 maxTickets, uint64 callbackGas, uint256 cooldown);
     event Observed(uint256 indexed topic0, uint256 pending, uint256 liquidity, uint256 originBlock);
     event TriggerDecision(bool fire, string reason, uint256 pending, uint256 liquidity);
     event SettleRequested(uint256 indexed originTx, uint256 pending, uint256 liquidity, uint256 maxTickets);
 
     error Unauthorized();
     error AlreadyBound();
+    error BadPolicy();
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert Unauthorized();
@@ -59,8 +63,8 @@ contract TidewaterReactive is AbstractReactive {
         if (bound) revert AlreadyBound();
         bound = true;
         vault = vault_;
-        uint256[4] memory ts = [T_QUEUED, T_CANCELLED, T_LIQUIDITY, T_SETTLED];
-        for (uint256 i; i < 4; i++) {
+        uint256[6] memory ts = [T_QUEUED, T_CANCELLED, T_LIQUIDITY, T_SETTLED, T_LENT, T_WITHDRAWN];
+        for (uint256 i; i < 6; i++) {
             SYSTEM.subscribe(originChainId, vault_, ts[i], REACTIVE_IGNORE, REACTIVE_IGNORE, REACTIVE_IGNORE);
         }
         emit Bound(vault_);
@@ -70,10 +74,14 @@ contract TidewaterReactive is AbstractReactive {
         external
         onlyOwner
     {
+        if (maxTickets_ == 0 || maxTickets_ > 25 || callbackGas_ < 100_000 || callbackGas_ > 3_000_000 || cooldown_ > 60) {
+            revert BadPolicy();
+        }
         minTrigger = minTrigger_;
         maxTickets = maxTickets_;
         callbackGas = callbackGas_;
         cooldown = cooldown_;
+        emit PolicyUpdated(minTrigger_, maxTickets_, callbackGas_, cooldown_);
     }
 
     function coverDebt() external {
@@ -112,6 +120,13 @@ contract TidewaterReactive is AbstractReactive {
             pending = pendingAfter;
             liquidity = liquidityAfter;
             inflightUntil = 0;
+            emit Observed(t0, pending, liquidity, log_.blockNumber);
+            _maybeFire(log_.txHash); // a capped batch can leave pending > 0 with liquidity still available
+            return;
+        } else if (t0 == T_LENT || t0 == T_WITHDRAWN) {
+            // data: amount, liquidityAfter; indexed address omitted
+            (, uint256 liquidityAfter) = abi.decode(log_.data, (uint256, uint256));
+            liquidity = liquidityAfter;
         } else if (t0 == T_LIQUIDITY) {
             // data: amount, liquidityAfter, pendingNow; from is indexed
             (, uint256 liquidityAfter, uint256 pendingNow) = abi.decode(log_.data, (uint256, uint256, uint256));
