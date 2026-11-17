@@ -5,7 +5,7 @@ Built on [Reactive Omni](https://dev.reactive.network) for the Reactive Omni Bui
 
 ![Tidewater dashboard](docs/screenshots/01-dashboard-desktop.png)
 
-**Demo video:** being re-recorded for the v2 contracts; the link will be added here.
+**Demo video (2:47):** [https://youtu.be/Unu0CWuicEc](https://youtu.be/Unu0CWuicEc). Recorded from the live app against the v2 contracts during real testnet transactions. Narration uses a synthetic voice.
 
 ## The problem
 
