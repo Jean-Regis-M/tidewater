@@ -49,3 +49,6 @@ footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px
 .strip a { color: var(--accent); text-decoration: none; }
 .strip a:hover { text-decoration: underline; }
 .chip { background: var(--line); color: var(--muted); padding: 3px 10px; border-radius: 999px; }
+
+.scroll { max-height: 340px; overflow: auto; margin-top: 8px; border-top: 1px solid var(--line); }
+.card h2 .tag { margin-left: auto; }

@@ -1,18 +1,26 @@
 import { useCallback, useEffect, useState } from 'react'
 import { createWalletClient, custom, parseUnits, type Hash } from 'viem'
 import {
-  addr, baseClient, baseSepolia, fmt, isDeployed, lasnaClient, logClient, reactiveAbi, short, tokenAbi, vaultAbi,
+  addr, baseClient, baseSepolia, fmt, isDeployed, lasnaClient, reactiveAbi, short, tokenAbi, vaultAbi,
 } from './chain'
+import recorded from './recorded-loops.json'
 import './App.css'
 
 type Ticket = { id: number; owner: `0x${string}`; amount: bigint; filled: bigint; queuedAt: number; cancelled: boolean }
-type Loop = { liquidityTx: Hash; settledTx: Hash; seconds: number; paid: bigint; tickets: number }
 type Snap = {
   liquidity: bigint; pending: bigint; head: bigint; count: bigint
   claims: bigint; balance: bigint; allowance: bigint; isOwner: boolean
   rx: { pending: bigint; liquidity: bigint; callbacks: bigint; ignored: bigint } | null
-  tickets: Ticket[]; loops: Loop[]
+  tickets: Ticket[]
 }
+
+
+type Recorded = { loop: number; origin: string; react: string; settle: string; originToSettleMs: number }
+const loopsData = recorded as Recorded[]
+const secs = loopsData.map((l) => l.originToSettleMs / 1000).sort((x, y) => x - y)
+const median = secs.length ? (secs[Math.floor((secs.length - 1) / 2)] + secs[Math.ceil((secs.length - 1) / 2)]) / 2 : 0
+const p95 = secs.length ? secs[Math.min(secs.length - 1, Math.round(0.95 * (secs.length - 1)))] : 0
+const BLOCKSCOUT = 'https://base-sepolia.blockscout.com'
 
 const eth = () => (window as unknown as { ethereum?: any }).ethereum
 
@@ -58,40 +66,7 @@ export default function App() {
         rx = { pending: p, liquidity: l, callbacks: c, ignored: ig }
       } catch { /* Lasna RPC hiccup: leave null */ }
 
-      // latency: pair each Settled with the latest preceding LiquidityAdded that had a queue
-      // scan back from head in 5,000-block windows (≈17 min each), newest first, until we have enough loops
-      let loops: Loop[] | null = null
-      try {
-      const headBlock = await logClient.getBlockNumber()
-      let adds: Awaited<ReturnType<typeof logClient.getContractEvents<typeof vaultAbi, 'LiquidityAdded'>>> = []
-      let settles: Awaited<ReturnType<typeof logClient.getContractEvents<typeof vaultAbi, 'Settled'>>> = []
-      for (let w = 0; w < 6 && settles.length < 6; w++) {
-        const to = headBlock - BigInt(w * 5000)
-        const from = to - 4999n > BigInt(addr.deployBlock) ? to - 4999n : BigInt(addr.deployBlock)
-        const [a, s] = await Promise.all([
-          logClient.getContractEvents({ address: v, abi: vaultAbi, eventName: 'LiquidityAdded', fromBlock: from, toBlock: to }),
-          logClient.getContractEvents({ address: v, abi: vaultAbi, eventName: 'Settled', fromBlock: from, toBlock: to }),
-        ])
-        adds = [...a, ...adds]; settles = [...s, ...settles]
-        if (from <= BigInt(addr.deployBlock)) break
-      }
-      const found: Loop[] = []
-      for (const s of settles.slice(-6)) {
-        if (!s.args.processed) continue
-        const trig = [...adds].reverse().find((a) => a.blockNumber! <= s.blockNumber! && (a.args.pendingNow ?? 0n) > 0n)
-        if (!trig) continue
-        const [b1, b2] = await Promise.all([
-          logClient.getBlock({ blockNumber: trig.blockNumber! }),
-          logClient.getBlock({ blockNumber: s.blockNumber! }),
-        ])
-        found.push({
-          liquidityTx: trig.transactionHash!, settledTx: s.transactionHash!,
-          seconds: Number(b2.timestamp - b1.timestamp), paid: s.args.paid ?? 0n, tickets: Number(s.args.processed),
-        })
-      }
-      loops = found.reverse()
-      } catch { /* log node hiccup: keep the previous loops table */ }
-      setSnap((prev) => ({ liquidity, pending, head, count, claims, balance, allowance, isOwner: !!account && owner.toLowerCase() === account.toLowerCase(), rx, tickets, loops: loops ?? prev?.loops ?? [] }))
+      setSnap(() => ({ liquidity, pending, head, count, claims, balance, allowance, isOwner: !!account && owner.toLowerCase() === account.toLowerCase(), rx, tickets }))
     } catch (e) { note(false, `Read failed: ${(e as Error).message.slice(0, 120)}`) }
   }, [account])
 
@@ -181,7 +156,7 @@ export default function App() {
           <p className="hint">Returning liquidity needs tUSD approved to the vault. Everything on this page reads live contract state.</p>
           {busy && <div className="pulse">Confirming: {busy}…</div>}
           <ul className="log">{log.map((l, i) => (
-            <li key={i} className={l.ok ? 'ok' : 'bad'}>{l.text}{l.hash && <> · <a href={`https://sepolia.basescan.org/tx/${l.hash}`} target="_blank" rel="noreferrer">{short(l.hash)}</a></>}</li>
+            <li key={i} className={l.ok ? 'ok' : 'bad'}>{l.text}{l.hash && <> · <a href={`https://base-sepolia.blockscout.com/tx/${l.hash}`} target="_blank" rel="noreferrer">{short(l.hash)}</a></>}</li>
           ))}</ul>
         </div>
       </section>
@@ -206,18 +181,22 @@ export default function App() {
           <div className="kv"><span>Mirrored liquidity</span><b>{snap?.rx ? fmt(snap.rx.liquidity) : '–'}</b></div>
           <div className="kv"><span>Callbacks requested</span><b>{snap?.rx ? String(snap.rx.callbacks) : '–'}</b></div>
           <div className="kv"><span>Events ignored (duplicate/stale)</span><b>{snap?.rx ? String(snap.rx.ignored) : '–'}</b></div>
-          {isDeployed && <p className="hint">Contract <a href={`https://lasna.reactscan.net/address/${addr.reactive}`} target="_blank" rel="noreferrer">{short(addr.reactive)}</a> · Vault <a href={`https://sepolia.basescan.org/address/${addr.vault}`} target="_blank" rel="noreferrer">{short(addr.vault)}</a></p>}
+          {isDeployed && <p className="hint">Contract <a href={`https://lasna.reactscan.net/address/${addr.reactive}`} target="_blank" rel="noreferrer">{short(addr.reactive)}</a> · Vault <a href={`https://base-sepolia.blockscout.com/address/${addr.vault}`} target="_blank" rel="noreferrer">{short(addr.vault)}</a></p>}
         </div>
         <div className="card">
-          <h2>Measured settlement loops</h2>
-          {!snap || snap.loops.length === 0 ? <p className="empty">No completed loops yet.</p> : (
-            <table><thead><tr><th>Origin tx</th><th>Settle tx</th><th>Paid</th><th>Seconds</th></tr></thead><tbody>
-              {snap.loops.map((l) => <tr key={l.settledTx}>
-                <td><a href={`https://sepolia.basescan.org/tx/${l.liquidityTx}`} target="_blank" rel="noreferrer">{short(l.liquidityTx)}</a></td>
-                <td><a href={`https://sepolia.basescan.org/tx/${l.settledTx}`} target="_blank" rel="noreferrer">{short(l.settledTx)}</a></td>
-                <td>{fmt(l.paid)}</td><td>{l.seconds}s</td></tr>)}
-            </tbody></table>)}
-          <p className="hint">Block timestamps on Base are whole seconds, so these are coarse. Precise sub-second timings are in the repository's measurement report.</p>
+          <h2>Recorded settlement loops <span className="tag">{loopsData.length} of {loopsData.length} settled</span></h2>
+          <div className="kv"><span>Median · p95 · max</span><b>{median.toFixed(1)} s · {p95.toFixed(1)} s · {secs[secs.length - 1]?.toFixed(1)} s</b></div>
+          <div className="scroll">
+            <table><thead><tr><th>#</th><th>Origin (Base)</th><th>Reaction (Lasna)</th><th>Settle (Base)</th><th>Δ</th></tr></thead><tbody>
+              {loopsData.map((l) => <tr key={l.settle}>
+                <td>{l.loop}</td>
+                <td><a href={`${BLOCKSCOUT}/tx/${l.origin}`} target="_blank" rel="noreferrer">{short(l.origin)}</a></td>
+                <td><span title={l.react}>{short(l.react)}</span></td>
+                <td><a href={`${BLOCKSCOUT}/tx/${l.settle}`} target="_blank" rel="noreferrer">{short(l.settle)}</a></td>
+                <td>{(l.originToSettleMs / 1000).toFixed(1)}s</td></tr>)}
+            </tbody></table>
+          </div>
+          <p className="hint">Δ is origin block to settle block, from Base block timestamps (millisecond precision). One laptop, public nodes. See the repository for method and caveats.</p>
         </div>
       </section>
 
