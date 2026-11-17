@@ -1,11 +1,34 @@
-# Tidewater
+<p align="center">
+  <img src="docs/assets/logo.png" alt="Tidewater logo" width="140">
+</p>
 
-**A cross-chain withdrawal queue that settles itself the moment liquidity returns.**
-Built on [Reactive Omni](https://dev.reactive.network) for the Reactive Omni Buildathon 2026, Track: *Every Second Counts*.
+<h1 align="center">Tidewater</h1>
+
+<p align="center">
+  <strong>A withdrawal queue that settles itself the moment liquidity returns.</strong><br>
+  Built on <a href="https://dev.reactive.network">Reactive Omni</a> for the Reactive Omni Buildathon 2026 &middot; Track: <em>Every Second Counts</em>
+</p>
+
+<p align="center">
+  <a href="https://github.com/Jean-Regis-M/tidewater/actions/workflows/ci.yml"><img src="https://github.com/Jean-Regis-M/tidewater/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
+  <img src="https://img.shields.io/badge/license-MIT-2dd4bf" alt="MIT licence">
+  <img src="https://img.shields.io/badge/solidity-0.8.29-2dd4bf" alt="Solidity 0.8.29">
+  <img src="https://img.shields.io/badge/networks-Base%20Sepolia%20%2B%20Reactive%20Lasna-2dd4bf" alt="Base Sepolia and Reactive Lasna">
+</p>
+
+<p align="center">
+  <a href="https://youtu.be/Unu0CWuicEc"><strong>Demo video (2:47)</strong></a> &middot;
+  <a href="#verified-end-to-end-transactions-v2">Verified transactions</a> &middot;
+  <a href="#measured-latency-v2-20-loops">Latency</a> &middot;
+  <a href="SECURITY.md">Security notes</a> &middot;
+  <a href="#quick-start">Quick start</a>
+</p>
+
+> **20 of 20 live loops settled** on the final contracts &middot; **median 1.4 s** from origin block to queue paid (Base block timestamps) &middot; **34 tests** incl. stateful invariants &middot; Slither: no High findings &middot; testnet prototype, not audited.
 
 ![Tidewater dashboard](docs/screenshots/01-dashboard-desktop.png)
 
-**Demo video (2:47):** [https://youtu.be/Unu0CWuicEc](https://youtu.be/Unu0CWuicEc). Recorded from the live app against the v2 contracts during real testnet transactions. Narration uses a synthetic voice.
+**Demo video:** [https://youtu.be/Unu0CWuicEc](https://youtu.be/Unu0CWuicEc). Recorded from the live app against the v2 contracts during real testnet transactions. Narration uses a synthetic voice.
 
 ## The problem
 
