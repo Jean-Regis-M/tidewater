@@ -18,13 +18,16 @@
 
 <p align="center">
   <a href="https://youtu.be/Unu0CWuicEc"><strong>Demo video (2:47)</strong></a> &middot;
+  <a href="https://jean-regis-m.github.io/tidewater/"><strong>Live dashboard</strong></a> &middot;
   <a href="#verified-end-to-end-transactions-v2">Verified transactions</a> &middot;
   <a href="#measured-latency-v2-20-loops">Latency</a> &middot;
+  <a href="#keeper-baseline-honest-comparison">Keeper baseline</a> &middot;
+  <a href="docs/DESIGN.md">Design notes</a> &middot;
   <a href="SECURITY.md">Security notes</a> &middot;
   <a href="#quick-start">Quick start</a>
 </p>
 
-> **20 of 20 live loops settled** on the final contracts &middot; **median 1.4 s** from origin block to queue paid (Base block timestamps) &middot; **34 tests** incl. stateful invariants &middot; Slither: no High findings &middot; testnet prototype, not audited.
+> **20 of 20 live loops settled** on the final contracts &middot; **median 1.4 s** from origin block to queue paid (Base block timestamps) &middot; **34 tests** incl. stateful invariants &middot; **source verified** on Blockscout and Sourcify &middot; compared against a real polling keeper &middot; testnet prototype, not audited.
 
 ![Tidewater dashboard](docs/screenshots/01-dashboard-desktop.png)
 
@@ -51,7 +54,7 @@ Tidewater gives the vault a **first-in-first-out withdrawal queue**. If funds ar
 | Decides *whether* to act | n/a | off-chain code | on-chain logic that mirrors queue state from events, dedupes, ignores stale events, rate-limits, re-fires after a capped batch |
 | Trust in the settler | n/a | the bot operator | a callback proxy plus an authorised reactive contract, enforced by the vault |
 
-The reactive contract is not a relay. It keeps its own copy of the queue (pending amount, liquidity) built only from vault events, and fires a callback only when `pending > 0`, liquidity meets a threshold, and no settle is already in flight.
+Reactive is **not** faster than a tuned keeper on a single fast chain; see the measured comparison below. Its value is that nobody has to run, fund, secure or keep alive the settler. The reactive contract is not a relay. It keeps its own copy of the queue (pending amount, liquidity) built only from vault events, and fires a callback only when `pending > 0`, liquidity meets a threshold, and no settle is already in flight.
 
 ## Architecture
 
@@ -100,7 +103,7 @@ The queue is a **doubly linked list**: cancelling and settling are O(1) per tick
 | `TidewaterVault` | Base Sepolia (84532) | [`0xc7B06Bf2e5c6Fbc7817631DB81842Ee3c6Df61aD`](https://base-sepolia.blockscout.com/address/0xc7B06Bf2e5c6Fbc7817631DB81842Ee3c6Df61aD) |
 | `TideToken` (tUSD, test only, shared with v1) | Base Sepolia | [`0xde9cAF1626f5680c2d7961ca4fd1638D3c4a1885`](https://base-sepolia.blockscout.com/address/0xde9cAF1626f5680c2d7961ca4fd1638D3c4a1885) |
 
-Callback proxy used: `0x476F44b11F5C942c58f4c8E3d0300E5710743585` (Base Sepolia). The token and the v1 Lasna contract share an address because each was the deployer's first transaction on its chain. Source verification on explorers has not been completed. The earlier v1 deployment is archived in [`deployments/v1`](deployments/v1) and is superseded: an independent review found a griefing bug in it that v2 fixes.
+Callback proxy used: `0x476F44b11F5C942c58f4c8E3d0300E5710743585` (Base Sepolia). The token and the v1 Lasna contract share an address because each was the deployer's first transaction on its chain. Source is verified: vault and token on [Blockscout](https://base-sepolia.blockscout.com/address/0xc7B06Bf2e5c6Fbc7817631DB81842Ee3c6Df61aD?tab=contract), reactive contract on Sourcify with an exact match ([lookup](https://repo.sourcify.dev/5318007/0xe7B2A395E352b3a9c7Af5DC249CbB46243b092F4)). The earlier v1 deployment is archived in [`deployments/v1`](deployments/v1) and is superseded: an independent review found a griefing bug in it that v2 fixes.
 
 ## Verified end-to-end transactions (v2)
 
@@ -153,13 +156,35 @@ Raw records: [`deployments/measurements.jsonl`](deployments/measurements.jsonl) 
 
 Caveats, stated plainly: one laptop over public RPCs, one scenario repeated 20 times, and no keeper baseline measured yet. The number covers the whole loop (Base event, Reactive, callback, Base settlement), not Reactive's block time alone. Lasna block timestamps are whole seconds only, so a per-hop split is not reported; it would be an artefact of rounding.
 
+## Keeper baseline (honest comparison)
+
+The track asks for latency that shows why Reactive Omni is needed, so the same 20 loops were repeated with a conventional **polling keeper** instead of Reactive. The baseline uses the *same* `TidewaterVault` code; only the authorised caller differs (a keeper address instead of the Reactive callback proxy). The keeper is [`baseline/keeper.mjs`](baseline/keeper.mjs): it polls `pending()` and `liquidity()` and sends `settle()` when there is a queue and liquidity. It runs on the same laptop as the load generator, against the same public RPC, which is the best case for a keeper.
+
+| Settler | Loops | Min | Median | p95 | Max |
+|---|---|---|---|---|---|
+| Reactive (callback via proxy) | 20 | 1.0 s | 1.4 s | 2.0 s | 2.0 s |
+| Keeper, polling every 1000 ms | 20 | 0.8 s | 1.2 s | 1.6 s | 1.6 s |
+| Keeper, polling every 250 ms | 20 | 0.8 s | 0.8 s | 3.0 s | 281.2 s |
+
+All figures are origin block to settle block from Base block timestamps (millisecond precision), 20 loops each, computed by [`scripts/measure_onchain.py`](scripts/measure_onchain.py).
+
+**What this shows.** On a single chain with 200 ms blocks, a keeper running on the same machine as the load generator is as fast as, or slightly faster than, the Reactive path. Reactive does not win on raw latency here, and this project does not claim it does.
+
+**The tail matters too.** In the 250 ms run, loop 12 took 281 s instead of about a second. The keeper kept polling but did not see the queue for roughly four and a half minutes, during the same minutes in which the public RPC returned an HTTP error and the measuring script's own reads stalled; it settled the moment reads recovered. The likely cause is stale reads from the load-balanced public RPC, but the cause was not proven. The Reactive path had no such outlier in its 20 loops. Both samples are small, so this is an observation about a failure mode (a keeper depends on its RPC being fresh), not a claim that Reactive can never be slow. The loop's settle transaction was reconstructed from chain data because the measuring script had timed out; it is flagged in `deployments/baseline-poll250.jsonl`.
+
+**What it does not show.** The keeper only works while someone keeps it running. When the keeper process was stopped and liquidity returned, the queue stayed unpaid for the whole 30 s observation window (settled during outage: no), and was paid 2.5 s after the keeper was restarted. The Reactive path has no process of yours to stop: the subscription and the callback are on-chain and funded from reserves. Reactive has its own failure modes (its network, and the prepaid reserves that must be kept topped up), and this experiment is a single observation, not a statistical claim.
+
+Where Reactive earns its place is operational: no server, no hot key with settlement authority, no uptime to maintain, and a settler the vault authenticates by construction instead of by trusting an operator. Where it would matter for latency is cross-chain triggers, where a keeper would have to watch several chains; that is the roadmap item below.
+
+Reproduce: deploy a baseline vault, run `node baseline/keeper.mjs <vault> <pollMs>`, and run `DEPLOY_FILE=deployments/baseline.json bash scripts/live_loop.sh 20`.
+
 ## Dashboard
 
 | Desktop | Mobile |
 |---|---|
 | ![desktop](docs/screenshots/01-dashboard-desktop.png) | <img src="docs/screenshots/02-dashboard-mobile.png" width="260" alt="mobile"> |
 
-The dashboard reads live chain state: vault liquidity, queued amount, the ticket table, the reactive contract's mirrored state and the measured loops.
+Live, read-only: **[jean-regis-m.github.io/tidewater](https://jean-regis-m.github.io/tidewater/)**. It reads live chain state: vault liquidity, queued amount, the ticket table, the reactive contract's mirrored state and the measured loops.
 
 ## Quick start
 
@@ -180,11 +205,12 @@ Funding the deployer on testnets: Ethereum Sepolia ETH can be sent to the Reacti
 
 ```
 src/          TidewaterVault, TidewaterReactive, TideToken
+baseline/     polling keeper used as the latency baseline
 test/         Foundry tests (mock system contract) and invariant tests
 scripts/      deploy.sh, live_loop.sh
 deployments/  testnet.json (v2), measurements.jsonl, lasna-links.json, v1/ (archived)
 frontend/     React + Vite + viem dashboard
-docs/         screenshots
+docs/         DESIGN.md (decisions and trade-offs), screenshots, assets
 ```
 
 ## Security
@@ -200,13 +226,12 @@ docs/         screenshots
 - Prototype on testnets. Not audited. The independent review used mock system and proxy contracts, not the real ones.
 - The owner can still lend all idle liquidity (only while the queue is empty) and repoint the strategy (same condition); there is no timelock or multisig. On the deployed vault the owner and strategy are the same wallet.
 - The vault is a mock: 1:1 claims with no yield, a demo strategy address and one test token with an open mint.
-- The user-facing flow starts and ends on Base Sepolia; the cross-chain hop is Base to Reactive Lasna to Base. A second origin chain (Unichain Sepolia) is on the roadmap, and there is no polling-keeper baseline measurement yet.
+- The user-facing flow starts and ends on Base Sepolia; the cross-chain hop is Base to Reactive Lasna to Base. A second origin chain (Unichain Sepolia) is on the roadmap. The keeper baseline above is a single-chain, same-machine best case.
 - If a settle callback is lost entirely, the 3-second cooldown expires and the next liquidity event retriggers it; there is no heartbeat.
-- Contract source is not yet verified on explorers.
 
 ## Roadmap
 
-A Unichain Sepolia origin for cross-chain liquidity signals with a keeper baseline, a timelock or multisig for owner actions, ERC-4626 and ERC-7540 compatibility, and explorer source verification.
+A Unichain Sepolia origin for cross-chain liquidity signals (where a keeper would have to watch several chains), a heartbeat for lost callbacks, a timelock or multisig for owner actions, and ERC-4626 and ERC-7540 compatibility.
 
 ## Contributing and licence
 
