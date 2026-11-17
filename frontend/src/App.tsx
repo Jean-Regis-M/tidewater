@@ -133,6 +133,16 @@ export default function App() {
         <p>When the vault is illiquid, withdrawals wait in a first-in-first-out queue. A reactive contract watches the vault, and the second funds come back it triggers settlement on Base Sepolia. No keeper, no server.</p>
       </section>
 
+      {isDeployed && (
+        <nav className="strip" aria-label="Project links">
+          <span className="chip">Live testnet state. Read-only until you connect a wallet on Base Sepolia.</span>
+          <a href="https://github.com/Jean-Regis-M/tidewater" target="_blank" rel="noreferrer">Source</a>
+          <a href="https://youtu.be/Unu0CWuicEc" target="_blank" rel="noreferrer">Demo video</a>
+          <a href={`https://base-sepolia.blockscout.com/address/${addr.vault}?tab=contract`} target="_blank" rel="noreferrer">Vault source (verified)</a>
+          <a href={`https://lasna.reactscan.net/address/${addr.reactive}`} target="_blank" rel="noreferrer">Reactive contract (verified)</a>
+        </nav>
+      )}
+
       {!isDeployed && (
         <div className="banner">Contracts are not deployed yet. Addresses will appear in <code>src/deployments.json</code> after deployment, and this page goes live automatically.</div>
       )}

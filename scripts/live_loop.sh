@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Runs N live loops on testnet: illiquid vault -> queued withdrawal -> repay (origin event) -> Reactive -> settle callback.
-# Appends one JSON line per loop to deployments/measurements.jsonl. Usage: scripts/live_loop.sh [N]
+# Appends one JSON line per loop to $MEASURE_FILE (default deployments/measurements.jsonl). Usage: [DEPLOY_FILE=..] [MEASURE_FILE=..] scripts/live_loop.sh [N]
 set -uo pipefail
 cd "$(dirname "$0")/.."
 set -a; . ./.env; set +a
 N=${1:-1}
 B=$BASE_SEPOLIA_RPC
 D=$(cast wallet address --private-key "$PRIVATE_KEY")
-T=$(python -I -c "import json;print(json.load(open('deployments/testnet.json'))['token'])")
-V=$(python -I -c "import json;print(json.load(open('deployments/testnet.json'))['vault'])")
+T=$(python -I -c "import json;print(json.load(open('${DEPLOY_FILE:-deployments/testnet.json}'))['token'])")
+V=$(python -I -c "import json;print(json.load(open('${DEPLOY_FILE:-deployments/testnet.json}'))['vault'])")
 AMT=${AMT:-100000000}   # 100 tUSD (6 decimals)
 snd() { cast send --rpc-url "$B" --private-key "$PRIVATE_KEY" "$@" --json; }
 field() { python -I -c "import sys,json;print(json.load(sys.stdin)['$1'])"; }
@@ -43,5 +43,5 @@ for i in $(seq 1 "$N"); do
   T2=$(now_ms)
   # find the Settled event tx (latest)
   SETTLE_TX=$(cast logs --rpc-url $B --address $V "Settled(uint256,uint256,uint256,uint256,uint256)" --from-block $(( $(cast block-number --rpc-url $B) - 150 )) --json | python -I -c "import sys,json;l=json.load(sys.stdin);print(l[-1]['transactionHash'] if isinstance(l,list) and l else '')")
-  echo "{\"loop\":$i,\"queueTx\":\"$QTX\",\"originTx\":\"$RTX\",\"settleTx\":\"$SETTLE_TX\",\"settled\":$SETTLED,\"repayConfirmedToSettledMs\":$((T2-T1)),\"sendToSettledMs\":$((T2-T0))}" | tee -a deployments/measurements.jsonl
+  echo "{\"loop\":$i,\"queueTx\":\"$QTX\",\"originTx\":\"$RTX\",\"settleTx\":\"$SETTLE_TX\",\"settled\":$SETTLED,\"repayConfirmedToSettledMs\":$((T2-T1)),\"sendToSettledMs\":$((T2-T0))}" | tee -a "${MEASURE_FILE:-deployments/measurements.jsonl}"
 done

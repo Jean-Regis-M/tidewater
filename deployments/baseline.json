@@ -1,0 +1,1 @@
+{ "role": "keeper-baseline", "note": "same TidewaterVault code; authorised caller is the keeper EOA", "token": "0xde9cAF1626f5680c2d7961ca4fd1638D3c4a1885", "vault": "0x4e9dCB0E3fC2c1989f2C999F0Ecdd81aF70aEeCE", "keeper": "0xdf25F616259ABf69641f6F7b46a8E00AC592f03C", "strategy": "0x0BD47503F8E280EE72437b74cb65A48714bF950c", "deployBlock": 59902153 }

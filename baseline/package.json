@@ -1,0 +1,9 @@
+{
+  "name": "tidewater-keeper-baseline",
+  "private": true,
+  "type": "module",
+  "description": "Polling keeper used as the latency baseline against the Reactive settlement path",
+  "dependencies": {
+    "viem": "^2.0.0"
+  }
+}

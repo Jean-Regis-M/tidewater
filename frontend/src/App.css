@@ -44,3 +44,8 @@ td { padding: 9px 8px; border-bottom: 1px solid var(--line); }
 @keyframes p { 50% { opacity: .45; } }
 @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
 footer { text-align: center; color: var(--muted); font-size: 12px; padding: 24px 0 0; }
+
+.strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: -6px 0 20px; font-size: 13px; }
+.strip a { color: var(--accent); text-decoration: none; }
+.strip a:hover { text-decoration: underline; }
+.chip { background: var(--line); color: var(--muted); padding: 3px 10px; border-radius: 999px; }
